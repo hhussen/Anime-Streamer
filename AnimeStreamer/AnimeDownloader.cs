@@ -14,6 +14,7 @@ namespace AnimeStreamer
     class AnimeDownloader
     {
         public static Dictionary<string,string> AnimeList;
+        public static Dictionary<string, string> Episodes;
         public static string videoURL;
 
 
@@ -78,6 +79,7 @@ namespace AnimeStreamer
         public static void Load()
         {
             AnimeList = new Dictionary<string, string>();
+
             try
             {
                 StreamReader file = new StreamReader(@"Animes.txt");
@@ -102,63 +104,6 @@ namespace AnimeStreamer
 
 
         /*****************************************************************************
-         * Function: Choose()
-         * Description: Does some trying and catching of calling GetVideo(). There are 
-         *              exceptions to the usual rule, so I try to get all cases
-         * Inputs:      animename    - This is the animename from the Combobox
-         *              animeepisode - This is the episode from the episode textbox 
-         *
-         * Outputs:     None 
-         *
-         *****************************************************************************/
-        public static void Choose(string animename, string animeepisode)
-        {
-            try
-            {
-                GrabVideo(animename, animeepisode, false);
-            }
-            catch
-            {
-                try
-                {
-                    GrabVideo(animename, animeepisode, true);
-                }
-                catch (Exception e)
-                {
-                    if (animeepisode == "12")
-                    {
-                        try
-                        {
-                            animeepisode = "12-final";
-                            GrabVideo(animename, animeepisode, false);
-                        }
-                        catch (Exception er)
-                        {
-                            Console.WriteLine(er.Message);
-                            MessageBox.Show("Please try again.", "Error");
-                        }
-
-                    }
-                    else
-                    {
-                        try
-                        {
-                            GrabVideo(animename, animeepisode, false, "ep");
-                        }
-                        catch
-                        {
-                            Console.WriteLine(e.Message);
-                            MessageBox.Show("Please try again.", "Error");
-                        }
-
-                    }
-
-                }
-            }
-        } /* Choose() */
-
-
-        /*****************************************************************************
          * Function:    GrabVideo()
          * Description: This takes the combobox anime name, and episode number then it 
          *              does some stuff to get to the page of the actual episode
@@ -169,10 +114,9 @@ namespace AnimeStreamer
          * Outputs:     None 
          *
          *****************************************************************************/
-        public static void GrabVideo(string animename, string animeepisode, bool tryagain, string format = "episode")
+        public static void GrabVideo(string animeepisode)
         {
-            var episodelink = GetEpisodeLink(animename, animeepisode, tryagain);
-            var url = "https://animetake.tv" + episodelink.Replace("episode",format);
+            var url = "https://animetake.tv" + Episodes[animeepisode];
             var web = new HtmlWeb();
             var doc = web.Load(url);
             var test = doc.DocumentNode.SelectSingleNode("//script[contains(text(), 'anime360p()')]").InnerHtml;
@@ -202,65 +146,44 @@ namespace AnimeStreamer
             }
         } /* GrabVideo() */
 
-        public static string GetEpisodeLink(string animename, string animeepisode, bool tryagain)
+        public static void GetEpisodes(string animename)
         {
+            Episodes = new Dictionary<string, string>();
             string link = AnimeList[animename];
             var url = "https://animetake.tv" + link;
             var web = new HtmlWeb();
             var doc = web.Load(url);
+            Console.WriteLine(doc.DocumentNode.SelectNodes("//*[contains(@class,'list-group')]/a"));
+            //string pattern = "a href\\s*=\\s*[\'\"](/watch/[^\"\'][\'\"])";
+            //string pattern = "a href\\s*=\\s*[\'\"](/watch/([^\"\']+\\-(?=\\d)(\\d+)))";
+            string pattern = "a href\\s*=\\s*[\'\"](/watch/([^\"\']+\\-(?=\\d)(\\d+)|[^\"\'/]+))";
 
-            //Finds all tags with the class name 'letter-children' which is a div, so I got the child 'a' to get the link and name      
-            var findclasses = doc.DocumentNode.SelectNodes("//a[contains(@class,'list-group-item animeinfo-content')]").First();
-            var episodelink = findclasses.Attributes["href"].Value;
-            var digits = new[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '/', '-' };
-            if (!animeepisode.Equals(""))
+            MatchCollection matches = Regex.Matches(doc.DocumentNode.OuterHtml, pattern);
+         
+            foreach (Match match in matches)
             {
-                if (tryagain == true)
+                try
                 {
-                    if (animeepisode.Length == 1)
-                        episodelink = episodelink.TrimEnd(digits) + '-' + "00" + animeepisode;
-                    else if (animeepisode.Length == 2)
-                        episodelink = episodelink.TrimEnd(digits) + '-' + "0" + animeepisode;
-                    else
-                        episodelink = episodelink.TrimEnd(digits) + '-' + animeepisode;
+                    if (!Episodes.ContainsKey(match.Groups[3].ToString()))
+                    {
+                        if (match.Groups[3].Length == 0)
+                        {
+                            Episodes.Add(match.Groups[2].ToString().ToUpper().Replace('-', ' '), match.Groups[1].ToString());
+                        }
+                        else
+                        {
+                            Episodes.Add(match.Groups[3].ToString().ToUpper(), match.Groups[1].ToString());
+                        }
+                    }
+
                 }
-                else
+                catch(Exception e)
                 {
-                    episodelink = episodelink.TrimEnd(digits) + '-' + animeepisode;
+                    Console.WriteLine(e.Message);
                 }
             }
-            else
-            {
-                episodelink = episodelink.TrimEnd(digits);
-            }
-            return episodelink;
-
-            url = "https://animetake.tv" + episodelink;
-            doc = web.Load(url);
-            var test = doc.DocumentNode.SelectSingleNode("//script[contains(text(), 'anime360p()')]").InnerHtml;
-
-            Console.WriteLine(test);
-            string pattern = "src\\s*=\\s*\"([^\"]+)\"";
-
-            MatchCollection matches = Regex.Matches(test, pattern);
             Console.WriteLine("Matches found: {0}", matches.Count);
 
-            if (matches.Count > 2)
-            {
-                //Groups[0] has =src in it so I want [1] which has it removed
-                videoURL = matches[1].Groups[1].Value;
-                videoURL = "https://animetake.tv" + videoURL;
-            }
-            else if (matches.Count > 1)
-            {
-                videoURL = matches[1].Groups[1].Value;
-                videoURL = "https://animetake.tv" + videoURL;
-            }
-            else
-            {
-                videoURL = matches[0].Groups[1].Value;
-                videoURL = "https://animetake.tv" + videoURL;
-            }
-        } /* GrabVideo() */
+        } /* GetEpisodes() */
     }
 }

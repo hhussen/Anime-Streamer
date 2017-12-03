@@ -18,8 +18,8 @@ namespace AnimeStreamer
         {
             InitializeComponent();
             AnimeDownloader.Start();
-            combobox.DataSource = AnimeDownloader.AnimeList.Keys.ToList();
-            combobox.SelectedIndex = 0;
+            cb_anime.DataSource = AnimeDownloader.AnimeList.Keys.ToList();
+            cb_anime.SelectedIndex = 0;
             /*
             List<string> players = new List<string>();
             players.Add("WMP");
@@ -53,7 +53,7 @@ namespace AnimeStreamer
         private void button1_Click(object sender, EventArgs e)
         {
             b_Browser.Enabled = false;
-            AnimeDownloader.Choose(combobox.Text, t_Episode.Text);
+            AnimeDownloader.GrabVideo(cb_episode.Text);
             /*  if (cb_Player.SelectedIndex == 0)
               {
                   wmp.URL = AnimeDownloader.videoURL;
@@ -74,7 +74,9 @@ namespace AnimeStreamer
 
         private void combobox_SelectedIndexChanged(object sender, EventArgs e)
         {
-
+            AnimeDownloader.GetEpisodes(cb_anime.Text);
+            cb_episode.DataSource = AnimeDownloader.Episodes.Keys.ToList();
+            cb_episode.SelectedIndex = 0;
         }
 
         private void button1_Click_1(object sender, EventArgs e)
