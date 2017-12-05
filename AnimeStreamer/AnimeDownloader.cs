@@ -118,8 +118,21 @@ namespace AnimeStreamer
         {
             var url = "https://animetake.tv" + Episodes[animeepisode];
             var web = new HtmlWeb();
+            //System.Threading.Thread.Sleep(5000);
             var doc = web.Load(url);
-            var test = doc.DocumentNode.SelectSingleNode("//script[contains(text(), 'anime360p()')]").InnerHtml;
+            //System.Threading.Thread.Sleep(1000);
+            //Console.WriteLine(doc.DocumentNode.InnerHtml);
+            //foreach (HtmlNode node in doc.DocumentNode.SelectNodes("//script[contains(text(), 'html5()')]"))
+            //    Console.WriteLine(node.InnerHtml);
+            string test;
+            try
+            {
+                test = doc.DocumentNode.SelectSingleNode("//script[contains(text(), 'anime360p()')]").InnerHtml;
+            }
+            catch
+            {
+                test = doc.DocumentNode.SelectSingleNode("//script[contains(text(), 'openload()')]").InnerHtml;
+            }
 
             Console.WriteLine(test);
 
@@ -156,7 +169,7 @@ namespace AnimeStreamer
             Console.WriteLine(doc.DocumentNode.SelectNodes("//*[contains(@class,'list-group')]/a"));
             //string pattern = "a href\\s*=\\s*[\'\"](/watch/[^\"\'][\'\"])";
             //string pattern = "a href\\s*=\\s*[\'\"](/watch/([^\"\']+\\-(?=\\d)(\\d+)))";
-            string pattern = "a href\\s*=\\s*[\'\"](/watch/([^\"\']+\\-(?=\\d)(\\d+)|[^\"\'/]+))";
+            string pattern = "a href\\s*=\\s*[\'\"](/watch/([^\"\']+\\-(?=\\d)([\\d\\w]+)|[^\"\'/]+))";
 
             MatchCollection matches = Regex.Matches(doc.DocumentNode.OuterHtml, pattern);
          
